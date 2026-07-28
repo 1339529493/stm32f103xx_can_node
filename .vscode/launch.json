@@ -1,0 +1,24 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug STM32",
+            "type": "cortex-debug",
+            "request": "launch",
+            "servertype": "openocd",
+            "executable": "${workspaceFolder}/bin/bootloader.elf",
+            // "openocdPath": "C:/study_my/stm32/openocd/xpack-openocd-0.12.0-7/bin/openocd.exe",
+            "configFiles": [
+                "interface/stlink.cfg",
+                "target/stm32f1x.cfg"
+            ],
+            // "runToEntryPoint": "main",
+            "runToEntryPoint": "Reset_Handler",
+            "gdbPath": "C:/study_my/stm32/arm-none-eabi/bin/arm-none-eabi-gdb.exe",
+            "preLaunchCommands": [
+                "file C:/study_my/stm32/stm32cubemx/can_c8/bin/bootloader.elf",
+                "add-symbol-file C:/study_my/stm32/stm32cubemx/can_c8/bin/app.elf 0x08004000"
+            ]
+        }
+    ]
+}

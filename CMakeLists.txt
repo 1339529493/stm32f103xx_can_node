@@ -18,13 +18,47 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Debug")
 endif()
 
-aux_source_directory(Core/app MIAN_APP_SRCS)
+set(APP_TAG_PROTOCALS app bootloader)
+set(APP_TAG app CACHE STRING "")
+set_property(CACHE APP_TAG PROPERTY STRINGS ${APP_TAG_PROTOCALS})
+
+if(APP_TAG STREQUAL "app")
+aux_source_directory(app/src MIAN_APP_SRCS)
 list(APPEND MIAN_APP_INCLUDES 
-    Core/app
+    app/src
 )
+set(LINK_PATH app/linker)
+list(APPEND ALL_BUILD_SRCS
+    ${MIAN_APP_SRCS}
+)
+list(APPEND ALL_BUILD_INCLUDES 
+    ${MIAN_APP_INCLUDES}
+)
+list(APPEND ALL_BUILD_DEFINE 
+    VECT_TAB_OFFSET=0x4000
+)
+elseif(APP_TAG STREQUAL "bootloader")
+aux_source_directory(bootloader/src BOOTLOADER_APP_SRCS)
+list(APPEND BOOTLOADER_APP_INCLUDES 
+    bootloader/src
+)
+set(LINK_PATH bootloader/linker)
+list(APPEND ALL_BUILD_SRCS
+    ${BOOTLOADER_APP_SRCS}
+)
+list(APPEND ALL_BUILD_INCLUDES 
+    ${BOOTLOADER_APP_INCLUDES}
+)
+list(APPEND ALL_BUILD_DEFINE 
+    VECT_TAB_OFFSET=0x4000
+    BOOTLOADER_TEST=0X100
+)
+endif()
+
+message("Build target: ${APP_TAG}")
 
 # Set the project name
-set(CMAKE_PROJECT_NAME can_c8)
+set(CMAKE_PROJECT_NAME ${APP_TAG})
 
 # Enable compile command to ease indexing with e.g. clangd
 set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
@@ -49,19 +83,17 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
 
 # Add sources to executable
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
-    # Add user sources here
-    ${MIAN_APP_SRCS}
+    ${ALL_BUILD_SRCS}
 )
 
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
-    # Add user defined include paths
-    ${MIAN_APP_INCLUDES}
+    ${ALL_BUILD_INCLUDES}
 )
 
 # Add project symbols (macros)
 target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
-    # Add user defined symbols
+    ${ALL_BUILD_DEFINE}
 )
 
 # Remove wrong libob.a library dependency when using cpp files

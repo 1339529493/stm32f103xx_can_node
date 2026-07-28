@@ -1,7 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>   // 添加：用于 memset, strlen
-#include <stdarg.h>   // 添加：用于 va_list, va_start, va_end
 #include "stm32f1xx_hal.h"
 
 #define TX_BUF_LEN 256     /* 发送缓冲区容量，根据需要进行调整 */
@@ -33,29 +31,18 @@ void LOG_UART_Init()
     huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;      // 硬件流控：无
     huart1.Init.OverSampling = UART_OVERSAMPLING_16;  // 过采样：16
     if (HAL_UART_Init(&huart1) != HAL_OK) {
-        Error_Handler();
-    
-}
-
-void MyPrintf(const char *__format, ...)
-{
-    va_list ap;
-    va_start(ap, __format);
-
-    /* 清空发送缓冲区 */
-    memset(TxBuf, 0x0, TX_BUF_LEN);
-
-    /* 填充发送缓冲区 */
-    vsnprintf((char *)TxBuf, TX_BUF_LEN, (const char *)__format, ap);
-    va_end(ap);
-    int len = strlen((const char *)TxBuf);
-
-    /* 往串口发送数据 */
-    HAL_UART_Transmit(&huart1, (uint8_t *)&TxBuf, len, 0xFFFF);
+        // Error_Handler();
+    }
 }
 
 int _write(int fd, char *ptr, int len)
 {
     HAL_UART_Transmit(&huart1, (uint8_t *)ptr, len, 0xFFFF);
     return len;
+}
+
+void LOG_UART_DeInit()
+{
+    HAL_UART_DeInit(&huart1);
+    HAL_GPIO_DeInit(GPIOA, GPIO_PIN_9 | GPIO_PIN_10);
 }
