@@ -1,0 +1,28 @@
+{
+    "configurations": [
+        {
+            "name": "STM32",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "${workspaceFolder}/Core/Inc",
+                "${workspaceFolder}/Drivers/STM32F1xx_HAL_Driver/Inc",
+                "${workspaceFolder}/Drivers/STM32F1xx_HAL_Driver/Inc/Legacy",
+                "${workspaceFolder}/Drivers/CMSIS/Device/ST/STM32F1xx/Include",
+                "${workspaceFolder}/Drivers/CMSIS/Include",
+                "C:/study_my/stm32/arm-none-eabi/include"  /* 编译器头文件 */
+            ],
+            "defines": [
+                "USE_HAL_DRIVER",
+                "STM32F103xE",  /* 根据你的芯片型号调整 */
+                "__weak=__attribute__((weak))",
+                "__packed=__attribute__((__packed__))"
+            ],
+            "compilerPath": "C:/study_my/stm32/arm-none-eabi/bin/arm-none-eabi-gcc",  /* 或者 Windows 路径 */
+            "cStandard": "c99",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "gcc-arm",
+            "compileCommands": "${workspaceFolder}/build/compile_commands.json"  /* 推荐 */
+        }
+    ],
+    "version": 4
+}

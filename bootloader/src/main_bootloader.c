@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include "log.h"
 #include "stm32f1xx_hal.h"
+#include "can.h"
 
 #define APPLICATION_START_ADDR 0x08004000
 
@@ -115,13 +116,18 @@ __attribute__((noreturn)) void bootloader_jump_to_application(void)
 
     /* 跳转到应用程序 */
     app_reset_handler();
+
+    while (1)
+    {
+
+    }
 }
 
 void main_bootloader(void)
 {
     LOG_UART_Init();
+    CAN1_Init();
     int i = 0;
-    printf("BOOTLOADER_TEST : %x\r\n",BOOTLOADER_TEST);
     while (1)
     {
         printf("This is a test message using printf. bootloader start : %d\r\n", i);
@@ -132,21 +138,13 @@ void main_bootloader(void)
         i++;
         if (i > 2)
         {
-            bootloader_jump_to_application();
+            // bootloader_jump_to_application();
         }
+        can_loop_test();
     }
 }
 
 void HardFault_Handler(void)
 {
-    // RCC->APB2ENR |= RCC_APB2ENR_IOPCEN;
-    // GPIOC->CRH &= ~(0xF << 20);   // 清除PC13配置
-    // GPIOC->CRH |= (0x3 << 20);    // 推挽输出
-    
-    // while(1) {
-    //     GPIOC->BSRR = (1 << (13 + 16));  // 低电平
-    //     for (volatile int i = 0; i < 50000; i++);
-    //     GPIOC->BSRR = (1 << 13);          // 高电平
-    //     for (volatile int i = 0; i < 50000; i++);
-    // }
+
 }

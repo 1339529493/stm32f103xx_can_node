@@ -34,24 +34,23 @@ list(APPEND ALL_BUILD_SRCS
 list(APPEND ALL_BUILD_INCLUDES 
     ${MIAN_APP_INCLUDES}
 )
-list(APPEND ALL_BUILD_DEFINE 
-    VECT_TAB_OFFSET=0x4000
-)
+# list(APPEND ALL_BUILD_DEFINE 
+#     VECT_TAB_OFFSET=0x4000
+# )
 elseif(APP_TAG STREQUAL "bootloader")
 aux_source_directory(bootloader/src BOOTLOADER_APP_SRCS)
+aux_source_directory(bootloader/src/can CAN_APP_SRCS)
 list(APPEND BOOTLOADER_APP_INCLUDES 
     bootloader/src
+    bootloader/src/can
 )
 set(LINK_PATH bootloader/linker)
 list(APPEND ALL_BUILD_SRCS
     ${BOOTLOADER_APP_SRCS}
+    ${CAN_APP_SRCS}
 )
 list(APPEND ALL_BUILD_INCLUDES 
     ${BOOTLOADER_APP_INCLUDES}
-)
-list(APPEND ALL_BUILD_DEFINE 
-    VECT_TAB_OFFSET=0x4000
-    BOOTLOADER_TEST=0X100
 )
 endif()
 

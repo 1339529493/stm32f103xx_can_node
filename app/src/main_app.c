@@ -15,11 +15,11 @@ void main_app(void)
         uint32_t pc;
         __asm volatile("mov %0, pc" : "=r"(pc));
         printf("This is a test message using printf. app start : %d, pc = %x, sp = %x\r\n", i, pc, sp);
-        // HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
-        // HAL_Delay(1000);
-        // HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_SET);
+        HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
         HAL_Delay(1000);
-        for (volatile int j = 0; j < 1000*1000; j++);
+        HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_SET);
+        HAL_Delay(1000);
+        // for (volatile int j = 0; j < 1000*1000; j++);
         i++;
     }
 }
