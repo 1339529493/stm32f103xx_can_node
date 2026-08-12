@@ -55,8 +55,8 @@ ENTRY(Reset_Handler)
 /* Specify the memory areas */
 MEMORY
 {
-  APP_FLASH (rx)         : ORIGIN = 0x08004000, LENGTH = 48K   /* 应用程序空间 */
-  RAM (xrw)              : ORIGIN = 0x20002000, LENGTH = 12K  /* SRAM */
+  APP_FLASH (rx)         : ORIGIN = 0x08006000, LENGTH = 40K   /* 应用程序空间 */
+  RAM (xrw)              : ORIGIN = 0x20002000, LENGTH = 20K  /* SRAM */
 }
 
 /* Highest address of the user mode stack */

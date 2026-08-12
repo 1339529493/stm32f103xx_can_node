@@ -8,23 +8,21 @@
 #include <stdio.h>
 #include <string.h>
 #include "can.h"
+#include "can_protocol.h"
 #include "main.h"
 
-/* 私有变量 ------------------------------------------------------------------*/
 static CAN_HandleTypeDef hcan1;                 /* CAN 句柄 */
-static CAN_RxMsg_t g_canRxQueue[CAN_RX_QUEUE_SIZE]; /* 软件接收队列 */
-static volatile uint16_t g_rxHead = 0;          /* 队列写指针 */
-static volatile uint16_t g_rxTail = 0;          /* 队列读指针 */
-static volatile uint32_t g_droppedFrames = 0;   /* 丢帧计数器 */
-static volatile uint32_t g_receivedFrames = 0;  /* 接收帧计数器 */
 
 /* 函数声明 ------------------------------------------------------------------*/
 static void CAN_GPIO_Init(void);
 static void CAN_NVIC_Init(void);
-static uint8_t CAN_QueuePush(CAN_RxMsg_t *pMsg);
-static uint8_t CAN_QueuePop(CAN_RxMsg_t *pMsg);
 static HAL_StatusTypeDef CAN_SendTestMessage(void);
 static HAL_StatusTypeDef CAN_ReceiveTestMessage(void);
+
+CAN_HandleTypeDef *CAN_GetHandle(void)
+{
+    return &hcan1;
+}
 
 /* 中断回调函数 --------------------------------------------------------------*/
 /**
@@ -38,7 +36,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
     CAN_RxHeaderTypeDef rxHeader;
     uint8_t rxData[8];
     
-    /* ⚡ 关键：中断中立即读取FIFO，释放硬件资源 */
+    /* 中断中立即读取FIFO，释放硬件资源(此处中断提速，改用寄存器直接操作) */
     if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO, &rxHeader, rxData) == HAL_OK)
     {
         /* 组装消息到软件队列 */
@@ -51,14 +49,7 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
         memcpy(msg.Data, rxData, 8);
         
         /* 放入软件队列（中断安全版本） */
-        if (CAN_QueuePush(&msg) == 1)
-        {
-            g_receivedFrames++;
-        }
-        else
-        {
-            g_droppedFrames++;  /* 队列满，丢帧 */
-        }
+        CAN_QueuePush(&msg);
     }
 }
 
@@ -119,69 +110,6 @@ void HAL_CAN_TxMailbox2CompleteCallback(CAN_HandleTypeDef *hcan)
     printf("CAN send sucusse\r\n");
 }
 
-/* 队列操作函数 --------------------------------------------------------------*/
-/**
-  * @brief  向软件队列推送消息（中断/任务均可使用）
-  * @param  pMsg: 消息指针
-  * @retval 1: 成功, 0: 队列满
-  */
-static uint8_t CAN_QueuePush(CAN_RxMsg_t *pMsg)
-{
-    uint16_t nextHead = (g_rxHead + 1) % CAN_RX_QUEUE_SIZE;
-    
-    /* 检查队列是否已满 */
-    if (nextHead == g_rxTail)
-    {
-        return 0;  /* 队列满 */
-    }
-    
-    /* 复制数据到队列 */
-    memcpy((void*)&g_canRxQueue[g_rxHead], pMsg, sizeof(CAN_RxMsg_t));
-    
-    /* 更新写指针 */
-    g_rxHead = nextHead;
-    
-    return 1;  /* 成功 */
-}
-
-/**
-  * @brief  从软件队列弹出消息（任务上下文使用）
-  * @param  pMsg: 消息指针（用于输出）
-  * @retval 1: 成功, 0: 队列空
-  */
-static uint8_t CAN_QueuePop(CAN_RxMsg_t *pMsg)
-{
-    /* 检查队列是否为空 */
-    if (g_rxHead == g_rxTail)
-    {
-        return 0;  /* 队列空 */
-    }
-    
-    /* 复制数据 */
-    memcpy(pMsg, (void*)&g_canRxQueue[g_rxTail], sizeof(CAN_RxMsg_t));
-    
-    /* 更新读指针 */
-    g_rxTail = (g_rxTail + 1) % CAN_RX_QUEUE_SIZE;
-    
-    return 1;  /* 成功 */
-}
-
-/**
-  * @brief  获取队列当前使用量
-  * @retval 队列中的消息数量
-  */
-static uint16_t CAN_QueueGetCount(void)
-{
-    if (g_rxHead >= g_rxTail)
-    {
-        return (g_rxHead - g_rxTail);
-    }
-    else
-    {
-        return (CAN_RX_QUEUE_SIZE - g_rxTail + g_rxHead);
-    }
-}
-
 /* 初始化函数 ----------------------------------------------------------------*/
 /**
   * @brief  CAN 初始化配置（含中断使能）
@@ -228,6 +156,7 @@ void CAN1_Init(void)
     {
         Error_Handler();
     }
+    CAN_ID_Map_Init();
     CAN_NVIC_Init();
     HAL_CAN_Start(&hcan1);
     HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING);
@@ -358,13 +287,13 @@ HAL_StatusTypeDef CAN_SendTestMessage(void)
         
         if (HAL_GetTick() - tickstart >= CAN_TEST_TIMEOUT)
         {
-            printf("CAN_SendTestMessage() timeout ,error : %x\r\n",hcan1.ErrorCode);
+            printf("CAN_SendTestMessage() timeout ,error : %lx\r\n",hcan1.ErrorCode);
             return HAL_TIMEOUT;
         }
     }
     else
     {
-        printf("CAN_SendTestMessage() failed ,error : %x\r\n",hcan1.ErrorCode);
+        printf("CAN_SendTestMessage() failed ,error : %lx\r\n",hcan1.ErrorCode);
     }
     
     return status;
@@ -381,7 +310,7 @@ HAL_StatusTypeDef CAN_ReceiveTestMessage(void)
     uint32_t tickstart = HAL_GetTick();
     
     /* 等待队列中有数据（超时保护） */
-    while (CAN_QueueGetCount() == 0)
+    while (CAN_QueueGetCount(CAN_TEST_MSG_ID) == 0)
     {
         if ((HAL_GetTick() - tickstart) >= CAN_TEST_TIMEOUT)
         {
@@ -392,7 +321,7 @@ HAL_StatusTypeDef CAN_ReceiveTestMessage(void)
     }
     
     /* 从软件队列弹出消息 */
-    if (CAN_QueuePop(&msg) == 0)
+    if (CAN_QueuePop(CAN_TEST_MSG_ID, &msg) == 0)
     {
         return HAL_ERROR;
     }

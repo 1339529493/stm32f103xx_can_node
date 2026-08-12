@@ -1,7 +1,9 @@
 #include <stdio.h>
+#include <string.h>
 #include "log.h"
 #include "stm32f1xx_hal.h"
 #include "can.h"
+#include "can_protocol.h"
 
 #define APPLICATION_START_ADDR 0x08004000
 
@@ -140,7 +142,8 @@ void main_bootloader(void)
         {
             // bootloader_jump_to_application();
         }
-        can_loop_test();
+        // can_loop_test();
+        can_private_loop_test();
     }
 }
 
